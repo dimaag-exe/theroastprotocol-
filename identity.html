@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Brain.exe — Identity Scan</title>
+
+<style>
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #05010d;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    display: block;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(140, 60, 255, 0.28), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(0, 255, 220, 0.2), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(255, 0, 150, 0.2), transparent 45%);
+    animation: bgShift 6s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgShift {
+    0%   { filter: hue-rotate(0deg) brightness(1); }
+    100% { filter: hue-rotate(70deg) brightness(1.2); }
+  }
+
+  .splash {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 24px;
+  }
+
+  .scan-icon {
+    font-size: 3.6rem;
+    margin-bottom: 18px;
+    display: inline-block;
+    animation: iconPulse 1.3s ease-in-out infinite;
+    filter: drop-shadow(0 0 26px rgba(140, 80, 255, 0.65));
+  }
+
+  @keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.14) rotate(3deg); }
+  }
+
+  .id-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0 0 4px;
+    background: linear-gradient(90deg, #7f5cff, #00e5ff, #ff4ecb, #7f5cff);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 3s linear infinite;
+  }
+
+  @keyframes shine { to { background-position: 300% center; } }
+
+  .id-tag {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(230, 225, 255, 0.5);
+    margin: 0 0 36px;
+  }
+
+  .id-tag span {
+    color: #ffd36e;
+    font-weight: 700;
+  }
+
+  .phrase-box {
+    min-height: 4.4em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    max-width: 380px;
+  }
+
+  #phrase {
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: #f0ecff;
+    letter-spacing: 0.2px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+
+  #phrase.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .progress {
+    position: relative;
+    width: min(280px, 70vw);
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    overflow: hidden;
+  }
+
+  #bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #8a3ffc, #00e5ff, #ff4ecb);
+    background-size: 200% 100%;
+    animation: barGradient 1.6s linear infinite;
+    box-shadow: 0 0 16px rgba(140, 80, 255, 0.7);
+    transition: width 0.4s ease;
+  }
+
+  @keyframes barGradient {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  #percent {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    color: rgba(230, 225, 255, 0.5);
+  }
+
+  .footer-tag {
+    position: absolute;
+    bottom: 26px;
+    left: 0;
+    right: 0;
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    color: rgba(230, 225, 255, 0.35);
+    z-index: 2;
+  }
+
+  @media (max-width: 420px) {
+    .id-name { font-size: 1.4rem; }
+    .scan-icon { font-size: 3rem; }
+  }
+
+</style>
+
+</head>
+
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="splash">
+
+  <span class="scan-icon" id="scanIcon">🧬</span>
+
+  <h1 class="id-name" id="idName">Scanning...</h1>
+  <p class="id-tag">identity module — <span>NOTHINGNESS</span></p>
+
+  <div class="phrase-box">
+    <p id="phrase">Cross-referencing your vibes...</p>
+  </div>
+
+  <div class="progress">
+    <div id="bar"></div>
+  </div>
+  <div id="percent">0%</div>
+
+</div>
+
+<p class="footer-tag">NOTHINGNESS™ — Diagnosing Personalities Since Never.</p>
+
+<script>
+  (function () {
+
+    /* ---------- particle background ---------- */
+    var canvas = document.getElementById('bg-canvas');
+    var ctx = canvas.getContext('2d');
+    var particles = [];
+    var count = 45;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    var colors = ['#8a3ffc', '#00e5ff', '#ff4ecb', '#7f5cff'];
+
+    function Particle() {
+      this.x = rand(0, canvas.width);
+      this.y = rand(0, canvas.height);
+      this.r = rand(1, 3);
+      this.vx = rand(-0.25, 0.25);
+      this.vy = rand(-0.25, 0.25);
+      this.color = colors[Math.floor(rand(0, colors.length))];
+      this.alpha = rand(0.2, 0.7);
+    }
+
+    for (var i = 0; i < count; i++) particles.push(new Particle());
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      for (var a = 0; a < particles.length; a++) {
+        for (var b = a + 1; b < particles.length; b++) {
+          var dx = particles[a].x - particles[b].x;
+          var dy = particles[a].y - particles[b].y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.strokeStyle = 'rgba(140, 90, 255, ' + (1 - dist / 110) * 0.25 + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    /* ---------- read saved data ---------- */
+    var name = '';
+    var gender = '';
+    try {
+      name = localStorage.getItem('brainexe_name') || '';
+      gender = localStorage.getItem('brainexe_gender') || '';
+    } catch (err) {}
+
+    var displayName = name || 'Mystery Human';
+    document.getElementById('idName').textContent = displayName;
+
+    var isDharmendra = name.trim().toLowerCase() === 'dharmendra';
+
+    /* ---------- phrase banks ---------- */
+    var dharmendraLines = [
+      "Ah, Dharmendra. The legend. The myth. The reason this app added a special case.",
+      "Scanning... found 90% charm, 10% actual answers.",
+      "Dharmendra detected. Deploying maximum roast protocol.",
+      "Confidence: sky-high. Accuracy: still loading.",
+      "You didn't pick a gender, the app picked one for you. That's main character behavior.",
+      "Legends say he once argued with a calculator and won on charisma alone.",
+      "Every group project has a Dharmendra. Every single one.",
+      "Brain.exe salutes you. Also, please double-check your homework."
+    ];
+
+    var maleRoastLines = [
+      "Scanning ego levels... please stand by, this may take a while.",
+      "Detected: strong opinions on things never actually researched.",
+      "Confidence level: 100%. Accuracy level: still calculating.",
+      "Would rather drive in circles for an hour than ask for directions. Confirmed.",
+      "Skipped the instructions. Again. Bold strategy.",
+      "Diagnosis: allergic to admitting fault. Chronic condition.",
+      "Found 14 unread texts and zero regrets about it.",
+      "Personality loaded successfully. Humility module: not found."
+    ];
+
+    var femaleFlirtLines = [
+      "Scanning... error, too much beauty to compute in one pass.",
+      "Warning: charm levels dangerously attractive. Proceed with caution.",
+      "If being stunning were a crime, you'd be serving a life sentence.",
+      "Brain.exe is blushing. This has never happened before.",
+      "Your vibe just broke our rating scale. New record set.",
+      "Somewhere, a poet just lost their job trying to describe you.",
+      "Loading compliments... they all feel inadequate next to you.",
+      "You didn't just enter the app, you upgraded it."
+    ];
+
+    var transRoastLines = [
+      "Scanning... found excellent taste and questionable sleep schedule.",
+      "Diagnosis: main character energy, side effects may include sarcasm.",
+      "Detected elite-level meme game and mediocre punctuality.",
+      "Personality loaded. Warning: too iconic for one screen.",
+      "Brain.exe is impressed and mildly intimidated. Rare combo.",
+      "Confidence: immaculate. Group chat replies: still pending.",
+      "You have the aura of someone who's never once used a turn signal.",
+      "Certified chaotic good. Proceed with snacks."
+    ];
+
+    var defaultLines = [
+      "Scanning identity... some assembly required.",
+      "No data found, running on vibes alone.",
+      "Personality inconclusive. Charisma: undeniable.",
+      "Brain.exe is improvising at this point."
+    ];
+
+    var lines;
+    if (isDharmendra) {
+      lines = dharmendraLines;
+    } else if (gender === 'Male') {
+      lines = maleRoastLines;
+    } else if (gender === 'Female') {
+      lines = femaleFlirtLines;
+    } else if (gender === 'Transgender') {
+      lines = transRoastLines;
+    } else {
+      lines = defaultLines;
+    }
+
+    /* ---------- rotate phrases ---------- */
+    var phraseEl = document.getElementById('phrase');
+    var order = lines.slice().sort(function () { return Math.random() - 0.5; });
+    var idx = 0;
+
+    function showNextPhrase() {
+      phraseEl.classList.remove('show');
+      setTimeout(function () {
+        phraseEl.textContent = order[idx % order.length];
+        idx++;
+        phraseEl.classList.add('show');
+      }, 200);
+    }
+
+    showNextPhrase();
+    var phraseTimer = setInterval(showNextPhrase, 1050);
+
+    /* ---------- progress bar + redirect ---------- */
+    var totalDuration = 4700; // ms
+    var startTime = Date.now();
+    var bar = document.getElementById('bar');
+    var percentEl = document.getElementById('percent');
+
+    function tick() {
+      var elapsed = Date.now() - startTime;
+      var pct = Math.min(100, Math.round((elapsed / totalDuration) * 100));
+      bar.style.width = pct + '%';
+      percentEl.textContent = pct + '%';
+
+      if (elapsed < totalDuration) {
+        requestAnimationFrame(tick);
+      } else {
+        clearInterval(phraseTimer);
+        window.location.href = 'categories.html';
+      }
+    }
+    tick();
+
+  })();
+</script>
+
+</body>
+
+</html>

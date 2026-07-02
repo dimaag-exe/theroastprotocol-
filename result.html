@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Brain Report</title>
+
+<link rel="stylesheet"
+href="../styles/style.css">
+
+<style>
+
+  /* ===== EXTREME UI LAYER — matches the rest of Brain.exe ===== */
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: #05010d;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    display: block;
+  }
+
+  #fx-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 3;
+    pointer-events: none;
+    display: block;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(140, 60, 255, 0.25), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(0, 255, 220, 0.18), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(255, 0, 150, 0.18), transparent 45%);
+    animation: bgShift 12s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgShift {
+    0%   { filter: hue-rotate(0deg) brightness(1); }
+    100% { filter: hue-rotate(60deg) brightness(1.15); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 2;
+    max-width: 480px;
+    margin: 6vh auto 4vh;
+    padding: 34px 26px 30px;
+    border-radius: 28px;
+    background: rgba(18, 10, 35, 0.55);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03) inset,
+      0 25px 60px -15px rgba(0,0,0,0.7),
+      0 0 90px -20px rgba(150, 60, 255, 0.55);
+    text-align: center;
+    animation: cardPop 0.5s cubic-bezier(.2,.9,.3,1.3);
+  }
+
+  @keyframes cardPop {
+    0%   { opacity: 0; transform: scale(0.9) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .container h1 {
+    font-size: 1.8rem;
+    margin: 0 0 18px;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #7f5cff, #00e5ff, #ff4ecb, #7f5cff);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 4s linear infinite;
+    text-shadow: 0 0 30px rgba(140, 80, 255, 0.35);
+  }
+
+  @keyframes shine { to { background-position: 300% center; } }
+
+  #name {
+    font-size: 1.3rem;
+    margin: 0 0 4px;
+    color: #f5f2ff;
+    letter-spacing: 0.3px;
+  }
+
+  #category {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin: 0 0 20px;
+    color: #b9a4ff;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.9;
+  }
+
+  #score {
+    font-size: 2.1rem;
+    font-weight: 800;
+    margin: 0 0 8px;
+    color: #f0ecff;
+    animation: scoreIn 0.6s ease 0.1s both;
+  }
+
+  #iq {
+    font-size: 2.6rem;
+    font-weight: 800;
+    margin: 0 0 22px;
+    background: linear-gradient(135deg, #00e5ff, #8a3ffc, #ff4ecb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 40px rgba(140, 80, 255, 0.45);
+    animation: scoreIn 0.6s ease 0.2s both;
+  }
+
+  @keyframes scoreIn {
+    0%   { opacity: 0; transform: scale(0.6); }
+    60%  { opacity: 1; transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  hr {
+    border: none;
+    height: 1px;
+    margin: 0 0 22px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  }
+
+  .container h3 {
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #ffd36e;
+    margin: 0 0 12px;
+  }
+
+  #roast {
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: #e6e1ff;
+    margin: 0 0 26px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    text-align: left;
+    animation: roastIn 0.5s ease 0.35s both;
+  }
+
+  @keyframes roastIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .btn-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .container button {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: transform .15s ease;
+  }
+
+  #shareBtn {
+    background: linear-gradient(135deg, #00e5ff, #7f5cff 60%, #ff4ecb);
+    background-size: 220% 220%;
+    animation: gradientMove 5s ease infinite;
+    box-shadow: 0 10px 30px -8px rgba(0, 229, 255, 0.55);
+  }
+
+  #shareBtn:disabled {
+    opacity: 0.7;
+    cursor: default;
+    transform: none !important;
+  }
+
+  #retryBtn {
+    background: linear-gradient(135deg, #8a3ffc, #ff4ecb 50%, #00e5ff);
+    background-size: 220% 220%;
+    animation: gradientMove 5s ease infinite;
+    box-shadow: 0 10px 30px -8px rgba(138, 63, 252, 0.75);
+  }
+
+  #aboutBtn {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    box-shadow: none;
+  }
+
+  @keyframes gradientMove {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .container button:active {
+    transform: scale(0.96);
+  }
+
+  @media (max-width: 420px) {
+    .container { margin: 5vh 16px; padding: 28px 20px 24px; border-radius: 22px; }
+    #iq { font-size: 2.2rem; }
+  }
+
+  /* ===== SHAREABLE RESULT CARD (off-screen, captured as an image) ===== */
+
+  #shareCard {
+    position: fixed;
+    top: 0;
+    left: -99999px;
+    width: 1080px;
+    height: 1350px;
+    background: linear-gradient(160deg, #180a30 0%, #0c0620 55%, #05010d 100%);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #fff;
+    padding: 90px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  #shareCard .sc-badge {
+    font-size: 30px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #ffd36e;
+    margin-bottom: 26px;
+  }
+
+  #shareCard .sc-logo {
+    font-size: 72px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #7f5cff, #00e5ff, #ff4ecb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 40px;
+  }
+
+  #shareCard .sc-name {
+    font-size: 52px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  #shareCard .sc-category {
+    font-size: 30px;
+    color: #b9a4ff;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 60px;
+  }
+
+  #shareCard .sc-score {
+    font-size: 46px;
+    font-weight: 700;
+    color: #f0ecff;
+    margin-bottom: 14px;
+  }
+
+  #shareCard .sc-iq-label {
+    font-size: 26px;
+    letter-spacing: 4px;
+    color: #9d8fc9;
+    margin-bottom: 6px;
+  }
+
+  #shareCard .sc-iq {
+    font-size: 130px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00e5ff, #8a3ffc, #ff4ecb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 50px;
+    line-height: 1;
+  }
+
+  #shareCard .sc-roast {
+    font-size: 32px;
+    line-height: 1.55;
+    color: #e6e1ff;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.14);
+    border-radius: 26px;
+    padding: 36px 40px;
+    max-width: 900px;
+  }
+
+  #shareCard .sc-footer {
+    margin-top: auto;
+    padding-top: 60px;
+    font-size: 26px;
+    letter-spacing: 1px;
+    color: #7a6da3;
+  }
+
+  /* ===== PREVIEW MODAL ===== */
+
+  #previewModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(3, 1, 10, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  #previewModal.open {
+    display: flex;
+  }
+
+  #previewBox {
+    position: relative;
+    max-width: 420px;
+    width: 100%;
+    background: rgba(18, 10, 35, 0.9);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 24px;
+    padding: 20px 20px 26px;
+    text-align: center;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  #previewClose {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  #previewImg {
+    width: 100%;
+    border-radius: 16px;
+    display: block;
+    margin: 10px 0 16px;
+    -webkit-touch-callout: default; /* keep long-press "Save image" enabled on iOS */
+    user-select: none;
+  }
+
+  #previewHint {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #cabdf0;
+    margin: 0 0 18px;
+  }
+
+  #previewShareBtn {
+    width: 100%;
+    padding: 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #00e5ff, #7f5cff 60%, #ff4ecb);
+  }
+
+</style>
+
+</head>
+
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="fx-canvas"></canvas>
+
+<div class="container">
+
+<h1>🧠 Dimaag.exe Report</h1>
+
+<h2 id="name"></h2>
+
+<h3 id="category"></h3>
+
+<h2 id="score"></h2>
+
+<h2 id="iq"></h2>
+
+<hr>
+
+<h3>AI Diagnosis</h3>
+
+<p id="roast"></p>
+
+<div class="btn-row">
+  <button id="shareBtn" onclick="shareResult()">
+  📤 Share My Result
+  </button>
+
+  <button id="retryBtn" onclick="location.reload()">
+  Test Again
+  </button>
+
+  <button id="aboutBtn" onclick="location.href='about.html'">
+  About Brain.exe
+  </button>
+</div>
+
+</div>
+
+<!-- Off-screen card used only for generating the shareable image -->
+<div id="shareCard">
+  <div class="sc-badge">AI Diagnosis</div>
+  <div class="sc-logo">🧠 Brain.exe</div>
+  <div class="sc-name" id="shareName"></div>
+  <div class="sc-category" id="shareCategory"></div>
+  <div class="sc-score" id="shareScoreVal"></div>
+  <div class="sc-iq-label">IQ SCORE</div>
+  <div class="sc-iq" id="shareIqVal"></div>
+  <div class="sc-roast" id="shareRoastVal"></div>
+  <div class="sc-footer">brain.exe — take the test yourself</div>
+</div>
+
+<!-- Preview modal: guaranteed-to-work fallback. Long-pressing an <img> and
+     tapping "Save image" is a native OS gesture, so it works even in
+     mobile WebViews where navigator.share / anchor-download silently
+     fail to reach the actual Photos/Gallery app. -->
+<div id="previewModal">
+  <div id="previewBox">
+    <button id="previewClose" onclick="closePreview()">✕</button>
+    <img id="previewImg" alt="Your Brain.exe result card">
+    <p id="previewHint">📸 Press and hold the image above, then tap
+      <strong>"Save image"</strong> to add it to your gallery.</p>
+    <button id="previewShareBtn" onclick="nativeShareFromPreview()">Share Directly</button>
+  </div>
+</div>
+
+<script src="../scripts/roast.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+  /* ===== EXTREME UI LAYER — particle background + confetti burst ===== */
+  /* Does not touch roast.js, which still fills #name, #category, #score, #iq, #roast */
+
+  (function () {
+    var canvas = document.getElementById('bg-canvas');
+    var ctx = canvas.getContext('2d');
+    var particles = [];
+    var count = 45;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      fx.width = window.innerWidth;
+      fx.height = window.innerHeight;
+    }
+
+    var fx = document.getElementById('fx-canvas');
+    var fctx = fx.getContext('2d');
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    var colors = ['#8a3ffc', '#00e5ff', '#ff4ecb', '#7f5cff', '#ffd36e'];
+
+    function Particle() {
+      this.x = rand(0, canvas.width);
+      this.y = rand(0, canvas.height);
+      this.r = rand(1, 3);
+      this.vx = rand(-0.2, 0.2);
+      this.vy = rand(-0.2, 0.2);
+      this.color = colors[Math.floor(rand(0, colors.length - 1))];
+      this.alpha = rand(0.2, 0.6);
+    }
+
+    for (var i = 0; i < count; i++) particles.push(new Particle());
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      for (var a = 0; a < particles.length; a++) {
+        for (var b = a + 1; b < particles.length; b++) {
+          var dx = particles[a].x - particles[b].x;
+          var dy = particles[a].y - particles[b].y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.strokeStyle = 'rgba(140, 90, 255, ' + (1 - dist / 100) * 0.22 + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    var confetti = [];
+    function spawnConfetti() {
+      var cx = fx.width / 2;
+      var cy = fx.height * 0.3;
+      for (var i = 0; i < 90; i++) {
+        var angle = rand(0, Math.PI * 2);
+        var speed = rand(2, 8);
+        confetti.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2,
+          size: rand(3, 7),
+          color: colors[Math.floor(rand(0, colors.length - 1))],
+          life: 0,
+          maxLife: rand(50, 90),
+          rot: rand(0, Math.PI * 2),
+          vr: rand(-0.2, 0.2)
+        });
+      }
+    }
+
+    function drawConfetti() {
+      fctx.clearRect(0, 0, fx.width, fx.height);
+      for (var i = confetti.length - 1; i >= 0; i--) {
+        var c = confetti[i];
+        c.vy += 0.12;
+        c.x += c.vx;
+        c.y += c.vy;
+        c.rot += c.vr;
+        c.life++;
+
+        var alpha = 1 - c.life / c.maxLife;
+        if (alpha <= 0) { confetti.splice(i, 1); continue; }
+
+        fctx.save();
+        fctx.translate(c.x, c.y);
+        fctx.rotate(c.rot);
+        fctx.globalAlpha = alpha;
+        fctx.fillStyle = c.color;
+        fctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size);
+        fctx.restore();
+      }
+      requestAnimationFrame(drawConfetti);
+    }
+
+    setTimeout(spawnConfetti, 250);
+    drawConfetti();
+  })();
+
+  /* ===== SHAREABLE RESULT CARD ===== */
+  /* Reads the already-populated result text (filled by roast.js) and
+     renders it into a clean, blur-free off-screen card, then turns
+     that card into an image via html2canvas and opens the native
+     share sheet (falls back to a plain download). */
+
+  var lastShareBlob = null;
+
+  async function shareResult() {
+    var btn = document.getElementById('shareBtn');
+    var originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+
+    document.getElementById('shareName').textContent =
+      document.getElementById('name').textContent;
+    document.getElementById('shareCategory').textContent =
+      document.getElementById('category').textContent;
+    document.getElementById('shareScoreVal').textContent =
+      document.getElementById('score').textContent;
+    document.getElementById('shareIqVal').textContent =
+      document.getElementById('iq').textContent;
+    document.getElementById('shareRoastVal').textContent =
+      document.getElementById('roast').textContent;
+
+    try {
+      var cardEl = document.getElementById('shareCard');
+      var canvas = await html2canvas(cardEl, {
+        backgroundColor: null,
+        scale: 1,
+        useCORS: true
+      });
+
+      canvas.toBlob(function (blob) {
+        lastShareBlob = blob;
+        var dataUrl = canvas.toDataURL('image/png');
+
+        // Always show the visible preview — long-pressing this image and
+        // tapping "Save image" is a native OS action, so it reliably
+        // reaches the real Photos/Gallery app even when navigator.share
+        // or an anchor download silently fail inside certain mobile
+        // WebViews (this is what was happening before).
+        document.getElementById('previewImg').src = dataUrl;
+        document.getElementById('previewModal').classList.add('open');
+
+        // Show the "Share Directly" shortcut only when the browser
+        // genuinely supports sharing a file, so it isn't a dead button.
+        var shareBtnInModal = document.getElementById('previewShareBtn');
+        var canFileShare = !!(navigator.canShare && navigator.canShare({
+          files: [new File([blob], 'brain-exe-result.png', { type: 'image/png' })]
+        }));
+        shareBtnInModal.style.display = canFileShare ? 'block' : 'none';
+
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }, 'image/png');
+
+    } catch (err) {
+      console.error('Share generation failed:', err);
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      alert('Could not generate the image, try again.');
+    }
+  }
+
+  function closePreview() {
+    document.getElementById('previewModal').classList.remove('open');
+  }
+
+  async function nativeShareFromPreview() {
+    if (!lastShareBlob) return;
+    var file = new File([lastShareBlob], 'brain-exe-result.png', { type: 'image/png' });
+    try {
+      await navigator.share({
+        files: [file],
+        title: 'My Brain.exe Result',
+        text: 'Brain.exe just roasted me. Try it yourself 🧠'
+      });
+    } catch (shareErr) {
+      /* user backed out of the share sheet, nothing to do */
+    }
+  }
+</script>
+
+</body>
+
+</html>

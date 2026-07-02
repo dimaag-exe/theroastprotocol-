@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Select Category</title>
+
+<link rel="stylesheet" href="../styles/style.css">
+
+<style>
+
+  /* ===== EXTREME UI LAYER — matches index.html theme ===== */
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: #05010d;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    display: block;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(140, 60, 255, 0.25), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(0, 255, 220, 0.18), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(255, 0, 150, 0.18), transparent 45%);
+    animation: bgShift 12s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgShift {
+    0%   { filter: hue-rotate(0deg) brightness(1); }
+    100% { filter: hue-rotate(60deg) brightness(1.15); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 2;
+    max-width: 640px;
+    margin: 6vh auto 4vh;
+    padding: 32px 22px 30px;
+    border-radius: 28px;
+    background: rgba(18, 10, 35, 0.55);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03) inset,
+      0 25px 60px -15px rgba(0,0,0,0.7),
+      0 0 90px -20px rgba(150, 60, 255, 0.55);
+    text-align: center;
+  }
+
+  .container h1 {
+    font-size: 2.3rem;
+    margin: 0 0 6px;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #7f5cff, #00e5ff, #ff4ecb, #7f5cff);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 4s linear infinite;
+    text-shadow: 0 0 30px rgba(140, 80, 255, 0.35);
+  }
+
+  @keyframes shine { to { background-position: 300% center; } }
+
+  .subtitle {
+    color: rgba(230, 225, 255, 0.75);
+    font-size: 0.95rem;
+    margin: 0 0 26px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  @media (min-width: 480px) {
+    .cards { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .card {
+    position: relative;
+    padding: 20px 10px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    cursor: pointer;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+    animation: cardIn 0.55s ease forwards;
+    transition: transform .18s ease, background .25s ease, box-shadow .25s ease;
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.12s; }
+  .card:nth-child(3) { animation-delay: 0.19s; }
+  .card:nth-child(4) { animation-delay: 0.26s; }
+  .card:nth-child(5) { animation-delay: 0.33s; }
+  .card:nth-child(6) { animation-delay: 0.40s; }
+  .card:nth-child(7) { animation-delay: 0.47s; }
+
+  @keyframes cardIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(138,63,252,0.35), rgba(0,229,255,0.25));
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+
+  .card:active {
+    transform: scale(0.93);
+    box-shadow: 0 0 24px rgba(140, 80, 255, 0.55);
+  }
+
+  .card:active::before { opacity: 1; }
+
+  .card h2 {
+    position: relative;
+    font-size: 2rem;
+    margin: 0 0 6px;
+    filter: drop-shadow(0 0 10px rgba(140,80,255,0.5));
+  }
+
+  .card h3 {
+    position: relative;
+    font-size: 0.95rem;
+    margin: 0 0 6px;
+    color: #f0ecff;
+    letter-spacing: 0.3px;
+  }
+
+  .card p {
+    position: relative;
+    font-size: 0.72rem;
+    margin: 0;
+    color: #ffd36e;
+    letter-spacing: 1px;
+  }
+
+  /* ripple dot for tap feedback */
+  .card .ripple-dot {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+    transform: scale(0);
+    pointer-events: none;
+    animation: rippleDot 0.6s ease-out forwards;
+  }
+
+  @keyframes rippleDot {
+    to { transform: scale(18); opacity: 0; }
+  }
+
+</style>
+
+</head>
+
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="container">
+
+<h1>🧠 Dimaag.exe</h1>
+
+<p class="subtitle">
+Select a Brain Region to Scan
+</p>
+
+<div class="cards">
+
+<div class="card" onclick="selectCategory('Mathematics')">
+
+<h2>📐</h2>
+
+<h3>Mathematics</h3>
+
+<p>Difficulty ⭐⭐⭐⭐⭐</p>
+
+</div>
+
+<div class="card" onclick="selectCategory('Physics')">
+
+<h2>⚛️</h2>
+
+<h3>Physics</h3>
+
+<p>Difficulty ⭐⭐⭐⭐</p>
+
+</div>
+
+<div class="card" onclick="selectCategory('Chemistry')">
+
+<h2>🧪</h2>
+
+<h3>Chemistry</h3>
+
+<p>Difficulty ⭐⭐⭐⭐</p>
+
+</div>
+
+<div class="card" onclick="selectCategory('Gaming')">
+
+<h2>🎮</h2>
+
+<h3>Gaming</h3>
+
+<p>Difficulty ⭐⭐</p>
+
+</div>
+
+<div class="card" onclick="selectCategory('Football')">
+
+<h2>⚽</h2>
+
+<h3>Football</h3>
+
+<p>Difficulty ⭐⭐⭐</p>
+
+</div>
+
+<div class="card" onclick="selectCategory('Movies')">
+
+<h2>🎬</h2>
+
+<h3>Movies</h3>
+
+<p>Difficulty ⭐⭐</p>
+
+</div>
+
+<div class="card" onclick="selectCategory('Music')">
+
+<h2>🎵</h2>
+
+<h3>Music</h3>
+
+<p>Difficulty ⭐⭐</p>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="../scripts/main.js"></script>
+
+<script>
+  /* ===== EXTREME UI LAYER — particle background + card tap ripple ===== */
+  /* Does not touch selectCategory(), which stays in main.js */
+
+  (function () {
+    var canvas = document.getElementById('bg-canvas');
+    var ctx = canvas.getContext('2d');
+    var particles = [];
+    var count = 55;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    var colors = ['#8a3ffc', '#00e5ff', '#ff4ecb', '#7f5cff'];
+
+    function Particle() {
+      this.x = rand(0, canvas.width);
+      this.y = rand(0, canvas.height);
+      this.r = rand(1, 3);
+      this.vx = rand(-0.25, 0.25);
+      this.vy = rand(-0.25, 0.25);
+      this.color = colors[Math.floor(rand(0, colors.length))];
+      this.alpha = rand(0.2, 0.7);
+    }
+
+    for (var i = 0; i < count; i++) particles.push(new Particle());
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      for (var a = 0; a < particles.length; a++) {
+        for (var b = a + 1; b < particles.length; b++) {
+          var dx = particles[a].x - particles[b].x;
+          var dy = particles[a].y - particles[b].y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.strokeStyle = 'rgba(140, 90, 255, ' + (1 - dist / 110) * 0.25 + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    // tap ripple dot on each card, added on top of existing onclick handlers
+    var cards = document.querySelectorAll('.card');
+    cards.forEach(function (card) {
+      card.addEventListener('click', function (e) {
+        var rect = card.getBoundingClientRect();
+        var dot = document.createElement('span');
+        dot.className = 'ripple-dot';
+        var size = 14;
+        dot.style.width = size + 'px';
+        dot.style.height = size + 'px';
+        dot.style.left = (e.clientX - rect.left - size / 2) + 'px';
+        dot.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        card.appendChild(dot);
+        setTimeout(function () { dot.remove(); }, 600);
+      });
+    });
+  })();
+</script>
+
+</body>
+
+</html>

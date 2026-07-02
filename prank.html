@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Scan · Brain.exe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0a0616;
+    --bg-glow-a:#2a0f4a;
+    --bg-glow-b:#0d2a3a;
+    --card-bg:rgba(18,13,36,0.65);
+    --card-border:rgba(255,255,255,0.08);
+    --accent-purple:#9b5cf6;
+    --accent-pink:#ec4899;
+    --accent-gold:#fbbf24;
+    --accent-red:#ff3b3b;
+    --accent-green:#4ade80;
+    --text-primary:#f2eefb;
+    --text-muted:#a89bc9;
+    --text-faint:#6d6189;
+    --mono:'JetBrains Mono', monospace;
+    --display:'Space Grotesk', sans-serif;
+    --body-font:'Inter', sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% 15%, var(--bg-glow-a) 0%, transparent 45%),
+      radial-gradient(circle at 85% 75%, var(--bg-glow-b) 0%, transparent 50%),
+      var(--bg-deep);
+    color:var(--text-primary);
+    font-family:var(--body-font);
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* CRT scanline overlay, always present, subtle */
+  .scanlines{
+    position:fixed; inset:0; z-index:50; pointer-events:none;
+    background:repeating-linear-gradient(180deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 3px);
+    mix-blend-mode:overlay;
+  }
+
+  .stage{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  .phase-screen{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .phase-screen.active{ display:flex; }
+
+  .mini-card, .term-card, .reveal-card{
+    width:100%;
+    max-width:520px;
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:20px;
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    padding:34px 30px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    text-align:center;
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:0.68rem;
+    letter-spacing:0.18em;
+    color:var(--accent-purple);
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+
+  h1{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:1.7rem;
+    margin-bottom:12px;
+    background:linear-gradient(100deg, var(--accent-purple), var(--accent-pink));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  p.desc{
+    font-size:0.92rem;
+    color:var(--text-muted);
+    line-height:1.6;
+    margin-bottom:26px;
+  }
+
+  .btn{
+    display:inline-block;
+    padding:15px 26px;
+    border-radius:14px;
+    font-family:var(--display);
+    font-weight:600;
+    font-size:0.95rem;
+    border:none;
+    cursor:pointer;
+    text-decoration:none;
+    color:#fff;
+    background:linear-gradient(100deg, var(--accent-pink), var(--accent-purple));
+    box-shadow:0 10px 30px rgba(236,72,153,0.35);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(236,72,153,0.5); }
+  .btn:active{ transform:scale(.96); }
+
+  /* ---------- terminal phase ---------- */
+  .term-card{ text-align:left; }
+  .term-head{
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:0.7rem; color:var(--text-faint);
+    margin-bottom:16px; letter-spacing:0.05em;
+  }
+  .term-head .dot{ width:8px;height:8px;border-radius:50%; }
+  .dot.r{background:#ff5f56;} .dot.y{background:#ffbd2e;} .dot.g{background:#27c93f;}
+
+  #termLines{
+    font-family:var(--mono);
+    font-size:0.82rem;
+    line-height:1.9;
+    min-height:180px;
+    color:var(--accent-green);
+  }
+  #termLines .line{ opacity:0; animation:fadeLine .2s forwards; }
+  @keyframes fadeLine{ to{opacity:1;} }
+  .caret{ display:inline-block; width:7px; height:13px; background:var(--accent-green); vertical-align:middle; animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{opacity:0;} }
+
+  .progress-wrap{ margin-top:20px; }
+  .progress-label{
+    display:flex; justify-content:space-between;
+    font-family:var(--mono); font-size:0.7rem; color:var(--text-muted); margin-bottom:6px;
+  }
+  .progress-track{
+    height:8px; border-radius:6px; background:rgba(255,255,255,0.08); overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; width:0%; border-radius:6px;
+    background:linear-gradient(90deg, var(--accent-purple), var(--accent-pink));
+    transition:width .3s ease;
+  }
+  .stall-text{
+    font-family:var(--mono); font-size:0.7rem; color:var(--accent-gold);
+    margin-top:10px; opacity:0; height:14px;
+  }
+
+  /* ---------- glitch / critical error phase ---------- */
+  #glitchPhase{ background:transparent; }
+  .glitch-text{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:2.1rem;
+    color:var(--accent-red);
+    text-align:center;
+    text-shadow:2px 0 #00eaff, -2px 0 #ff00c8;
+    animation:glitchJitter .12s infinite;
+    letter-spacing:0.02em;
+  }
+  .glitch-sub{
+    font-family:var(--mono); font-size:0.8rem; color:var(--text-primary);
+    text-align:center; margin-top:14px; opacity:0.85;
+  }
+  @keyframes glitchJitter{
+    0%{ transform:translate(0,0) skewX(0deg); }
+    20%{ transform:translate(-3px,2px) skewX(2deg); }
+    40%{ transform:translate(3px,-2px) skewX(-2deg); }
+    60%{ transform:translate(-2px,-1px) skewX(1deg); }
+    80%{ transform:translate(2px,1px) skewX(-1deg); }
+    100%{ transform:translate(0,0) skewX(0deg); }
+  }
+  .red-flash{
+    position:fixed; inset:0; background:rgba(255,20,20,0.18); z-index:40;
+    pointer-events:none; opacity:0; animation:flashPulse .35s infinite;
+  }
+  @keyframes flashPulse{ 0%,100%{opacity:0;} 50%{opacity:1;} }
+
+  body.shake{ animation:shakeAnim .25s infinite; }
+  @keyframes shakeAnim{
+    0%{ transform:translate(0,0); }
+    25%{ transform:translate(-6px,4px); }
+    50%{ transform:translate(6px,-4px); }
+    75%{ transform:translate(-4px,-6px); }
+    100%{ transform:translate(4px,6px); }
+  }
+  body.shake-hard{ animation:shakeHard .12s infinite; }
+  @keyframes shakeHard{
+    0%{ transform:translate(0,0) rotate(0deg); }
+    25%{ transform:translate(-10px,6px) rotate(-1deg); }
+    50%{ transform:translate(10px,-6px) rotate(1deg); }
+    75%{ transform:translate(-8px,-8px) rotate(-1deg); }
+    100%{ transform:translate(8px,8px) rotate(1deg); }
+  }
+
+  /* ---------- countdown phase ---------- */
+  #countdownPhase .cd-label{
+    font-family:var(--mono); font-size:0.75rem; letter-spacing:0.15em;
+    color:var(--accent-red); text-align:center; margin-bottom:18px;
+  }
+  #countdownNum{
+    font-family:var(--display); font-weight:700; font-size:6.5rem;
+    color:var(--accent-red); text-align:center;
+    text-shadow:0 0 30px rgba(255,59,59,0.7);
+    animation:pulseNum .5s ease-in-out infinite;
+  }
+  @keyframes pulseNum{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.15);} }
+
+  .blackout{
+    position:fixed; inset:0; background:#000; z-index:60;
+    opacity:0; pointer-events:none; transition:opacity .15s ease;
+  }
+  .blackout.on{ opacity:1; pointer-events:all; }
+
+  .flip-wrap{ transition:transform .35s ease; }
+  .flip-wrap.flipped{ transform:rotate(180deg); }
+
+  /* ---------- reveal phase ---------- */
+  .reveal-card h1{ font-size:1.9rem; }
+  .runaway-wrap{
+    position:relative;
+    height:70px;
+    margin:22px 0 8px;
+  }
+  #continueBtn{
+    position:absolute;
+    transition:left .25s ease, top .25s ease;
+  }
+  .secondary-actions{
+    display:flex; flex-direction:column; gap:10px; margin-top:16px;
+  }
+  .btn-ghost{
+    background:rgba(255,255,255,0.06);
+    color:var(--text-primary);
+    border:1px solid var(--card-border);
+    box-shadow:none;
+    font-size:0.85rem;
+    padding:12px 18px;
+  }
+  .btn-ghost:hover{ background:rgba(255,255,255,0.1); box-shadow:none; }
+
+  .roast-box{
+    margin-top:18px;
+    border-left:2px solid var(--accent-gold);
+    background:rgba(251,191,36,0.06);
+    border-radius:0 10px 10px 0;
+    padding:12px 14px;
+    font-family:var(--mono);
+    font-size:0.82rem;
+    text-align:left;
+    min-height:44px;
+    color:var(--text-primary);
+  }
+
+  .skip{
+    position:fixed; top:18px; right:20px; z-index:70;
+    font-family:var(--mono); font-size:0.68rem; color:var(--text-faint);
+    opacity:0.35; text-decoration:none; letter-spacing:0.05em;
+    transition:opacity .2s ease;
+  }
+  .skip:hover{ opacity:0.9; }
+
+  .confetti-piece{
+    position:fixed; top:-20px; width:8px; height:14px; z-index:55;
+    pointer-events:none;
+    animation:fall linear forwards;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110vh) rotate(540deg); opacity:0.9; }
+  }
+
+  @media (max-width:480px){
+    .mini-card,.term-card,.reveal-card{ padding:26px 20px; }
+    #countdownNum{ font-size:5rem; }
+    h1{ font-size:1.4rem; }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ animation:none !important; transition:none !important; }
+    body.shake, body.shake-hard{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<a href="about.html" class="skip" id="skipLink">skip »</a>
+<div class="red-flash" id="redFlash"></div>
+<div class="blackout" id="blackout"></div>
+
+<div class="stage">
+  <div class="flip-wrap" id="flipWrap">
+
+    <!-- Phase 0: start -->
+    <div class="phase-screen active" id="startPhase">
+      <div class="mini-card">
+        <div class="eyebrow">DEEP SCAN MODULE</div>
+        <h1>⚠️ Deep Scan Ready</h1>
+        <p class="desc">This goes further than the last test. It will access parts of your brain most tests are too scared to touch. Proceed?</p>
+        <button class="btn" id="beginBtn">Begin Scan</button>
+      </div>
+    </div>
+
+    <!-- Phase 1: terminal -->
+    <div class="phase-screen" id="termPhase">
+      <div class="term-card">
+        <div class="term-head">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          deep_scan.exe — running
+        </div>
+        <div id="termLines"></div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>PROGRESS</span><span id="progressPct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="stall-text" id="stallText">...still working, please don't close this...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2: glitch / critical error -->
+    <div class="phase-screen" id="glitchPhase">
+      <div>
+        <div class="glitch-text">CRITICAL ERROR</div>
+        <div class="glitch-sub" id="glitchSub">BRAIN.EXE HAS STOPPED RESPONDING</div>
+      </div>
+    </div>
+
+    <!-- Phase 3: countdown -->
+    <div class="phase-screen" id="countdownPhase">
+      <div>
+        <div class="cd-label">SELF-DESTRUCT INITIATED</div>
+        <div id="countdownNum">5</div>
+      </div>
+    </div>
+
+    <!-- Phase 4: reveal -->
+    <div class="phase-screen" id="revealPhase">
+      <div class="reveal-card">
+        <div class="eyebrow">SCAN COMPLETE</div>
+        <h1>😂 GOTCHA!</h1>
+        <p class="desc">Relax. Nothing was deleted, nothing was destroyed, and your IQ file is still safe (ish). This was Brain.exe doing what it does best.</p>
+
+        <div class="runaway-wrap">
+          <button class="btn" id="continueBtn">Continue</button>
+        </div>
+
+        <div class="roast-box" id="roastBox">Brain.exe: "..."</div>
+
+        <div class="secondary-actions">
+          <button class="btn btn-ghost" id="roastBtn">🔁 Roast Me Again</button>
+          <a class="btn btn-ghost" id="diagLink" href="#" target="_blank" rel="noopener noreferrer">🎥 View Full Diagnostic</a>
+          <a class="btn btn-ghost" href="about.html">🏠 Back to About</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /* ---------------- helpers ---------------- */
+  const $ = id => document.getElementById(id);
+  function showPhase(id){
+    document.querySelectorAll('.phase-screen').forEach(p => p.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+  function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+  function vibrate(pattern){ if(navigator.vibrate){ navigator.vibrate(pattern); } }
+
+  /* ---------------- alarm sound (Web Audio, no files needed) ---------------- */
+  let audioCtx;
+  let sirenInterval;
+  function startSiren(){
+    try{
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      gain.gain.value = 0.05;
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      let up = true;
+      let freq = 440;
+      sirenInterval = setInterval(()=>{
+        freq += up ? 40 : -40;
+        if(freq > 900) up = false;
+        if(freq < 400) up = true;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      }, 60);
+      window.__sirenOsc = osc;
+    }catch(e){ /* audio blocked, prank still works visually */ }
+  }
+  function stopSiren(){
+    clearInterval(sirenInterval);
+    if(window.__sirenOsc){ try{ window.__sirenOsc.stop(); }catch(e){} }
+    if(audioCtx){ try{ audioCtx.close(); }catch(e){} }
+  }
+  function beep(freq=880, dur=0.08){
+    try{
+      const ctx2 = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx2.createOscillator(); const g = ctx2.createGain();
+      o.frequency.value = freq; g.gain.value = 0.06;
+      o.connect(g).connect(ctx2.destination);
+      o.start(); o.stop(ctx2.currentTime + dur);
+    }catch(e){}
+  }
+
+  /* ---------------- phase 1: terminal ---------------- */
+  const termLines = [
+    "> INITIALIZING DEEP_SCAN.exe",
+    "> Locating cranial coordinates...",
+    "> Accessing gallery... found 4,281 screenshots of memes",
+    "> Scanning browser history...",
+    "> Calculating cringe index...",
+    "> WARNING: cringe index off the charts",
+    "> Cross-referencing embarrassing 3am texts...",
+    "> Compiling final report..."
+  ];
+
+  async function runTerminal(){
+    showPhase('termPhase');
+    const box = $('termLines');
+    box.innerHTML = '';
+    for(const line of termLines){
+      const div = document.createElement('div');
+      div.className = 'line';
+      div.textContent = line;
+      box.appendChild(div);
+      beep(600, 0.03);
+      await wait(340);
+    }
+    const caretLine = document.createElement('div');
+    caretLine.className = 'line';
+    caretLine.innerHTML = '> <span class="caret"></span>';
+    box.appendChild(caretLine);
+
+    // progress bar: fast to 97%, then stall
+    const fill = $('progressFill');
+    const pct = $('progressPct');
+    let p = 0;
+    await new Promise(resolve=>{
+      const iv = setInterval(()=>{
+        p += Math.random()*9;
+        if(p >= 97){ p = 97; clearInterval(iv); resolve(); }
+        fill.style.width = p + '%';
+        pct.textContent = Math.floor(p) + '%';
+      }, 140);
+    });
+
+    $('stallText').style.opacity = '1';
+    await wait(1600);
+    await runGlitch();
+  }
+
+  /* ---------------- phase 2: glitch / critical error ---------------- */
+  async function runGlitch(){
+    showPhase('glitchPhase');
+    document.body.classList.add('shake');
+    $('redFlash').style.animationDuration = '0.3s';
+    $('redFlash').style.opacity = '1';
+    startSiren();
+    vibrate([100,60,100,60,300]);
+
+    const subs = [
+      "BRAIN.EXE HAS STOPPED RESPONDING",
+      "MEMORY CORRUPTION DETECTED",
+      "REROUTING TO EMERGENCY PROTOCOL"
+    ];
+    for(const s of subs){
+      $('glitchSub').textContent = s;
+      await wait(650);
+    }
+
+    document.body.classList.remove('shake');
+    document.body.classList.add('shake-hard');
+    await wait(900);
+    await runCountdown();
+  }
+
+  /* ---------------- phase 3: countdown ---------------- */
+  async function runCountdown(){
+    showPhase('countdownPhase');
+    const num = $('countdownNum');
+    for(let i=5;i>=1;i--){
+      num.textContent = i;
+      beep(220 + i*40, 0.12);
+      vibrate(120);
+      await wait(700);
+    }
+    // blackout + flip cut
+    $('blackout').classList.add('on');
+    document.body.classList.remove('shake-hard');
+    stopSiren();
+    $('redFlash').style.opacity = '0';
+    await wait(280);
+    $('flipWrap').classList.add('flipped');
+    await wait(50);
+    showPhase('revealPhase');
+    await wait(50);
+    $('flipWrap').classList.remove('flipped');
+    await wait(300);
+    $('blackout').classList.remove('on');
+    launchConfetti();
+    setRoast();
+    $('skipLink').style.display = 'none';
+  }
+
+  /* ---------------- confetti ---------------- */
+  function launchConfetti(){
+    const colors = ['#9b5cf6','#ec4899','#fbbf24','#4ade80','#38bdf8'];
+    for(let i=0;i<50;i++){
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random()*100 + 'vw';
+      piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+      piece.style.animationDuration = (2.2 + Math.random()*1.8) + 's';
+      piece.style.opacity = 0.85;
+      document.body.appendChild(piece);
+      setTimeout(()=>piece.remove(), 4200);
+    }
+  }
+
+  /* ---------------- reveal: runaway button ---------------- */
+  let dodges = 0;
+  const MAX_DODGES = 4;
+  const continueBtn = $('continueBtn');
+  function dodge(){
+    if(dodges >= MAX_DODGES) return;
+    dodges++;
+    const wrap = continueBtn.parentElement.getBoundingClientRect();
+    const maxX = Math.max(wrap.width - continueBtn.offsetWidth, 0);
+    const maxY = Math.max(wrap.height - continueBtn.offsetHeight, 0);
+    continueBtn.style.left = (Math.random()*maxX) + 'px';
+    continueBtn.style.top = (Math.random()*maxY) + 'px';
+    beep(500,0.05);
+  }
+  continueBtn.addEventListener('mouseenter', dodge);
+  continueBtn.addEventListener('touchstart', e=>{ e.preventDefault(); dodge(); }, {passive:false});
+  continueBtn.addEventListener('click', ()=>{
+    if(dodges < MAX_DODGES){ dodge(); return; }
+    window.location.href = 'about.html';
+  });
+
+  /* ---------------- roast generator ---------------- */
+  const roasts = [
+    "Scan complete. Result: technically a brain.",
+    "You didn't fail the test. The test failed to contain you. That's worse, somehow.",
+    "IQ recalculated. Battery percentage may be higher.",
+    "Diagnosis: chronically online, occasionally brilliant.",
+    "Your neurons filed a formal complaint.",
+    "Impressive. Concerning. Mostly concerning.",
+    "Brain.exe has seen things. This wasn't one of the good ones.",
+    "Certified: 60% genius, 40% vibes."
+  ];
+  function setRoast(){
+    const box = $('roastBox');
+    const line = roasts[Math.floor(Math.random()*roasts.length)];
+    box.textContent = '';
+    let i = 0;
+    const iv = setInterval(()=>{
+      box.textContent = 'Brain.exe: "' + line.slice(0,i) + '"';
+      i++;
+      if(i > line.length) clearInterval(iv);
+    }, 18);
+  }
+  $('roastBtn').addEventListener('click', setRoast);
+
+  /* rickroll easter egg on the "View Full Diagnostic" link */
+  $('diagLink').href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+  /* ---------------- kick off ---------------- */
+  $('beginBtn').addEventListener('click', ()=>{
+    beep(700,0.05);
+    runTerminal();
+  });
+</script>
+
+</body>
+</html>

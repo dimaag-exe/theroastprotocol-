@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Brain.exe</title>
+
+<link rel="stylesheet" href="../styles/style.css">
+
+<style>
+
+  /* ===== EXTREME UI LAYER — safe to keep alongside style.css ===== */
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: #05010d;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  #bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(140, 60, 255, 0.25), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(0, 255, 220, 0.18), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(255, 0, 150, 0.18), transparent 45%);
+    animation: bgShift 12s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgShift {
+    0%   { filter: hue-rotate(0deg) brightness(1); }
+    100% { filter: hue-rotate(60deg) brightness(1.15); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 2;
+    max-width: 480px;
+    margin: 8vh auto 4vh;
+    padding: 36px 28px 30px;
+    border-radius: 28px;
+    background: rgba(18, 10, 35, 0.55);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03) inset,
+      0 25px 60px -15px rgba(0,0,0,0.7),
+      0 0 90px -20px rgba(150, 60, 255, 0.55);
+    animation: floatCard 6s ease-in-out infinite;
+    text-align: center;
+  }
+
+  @keyframes floatCard {
+    0%, 100% { transform: translateY(0px) rotateX(0deg); }
+    50%      { transform: translateY(-8px) rotateX(0.5deg); }
+  }
+
+  .container h1 {
+    font-size: 2.6rem;
+    margin: 0 0 6px;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #7f5cff, #00e5ff, #ff4ecb, #7f5cff);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 4s linear infinite, glitch 7s infinite;
+    text-shadow: 0 0 30px rgba(140, 80, 255, 0.35);
+  }
+
+  @keyframes shine {
+    to { background-position: 300% center; }
+  }
+
+  @keyframes glitch {
+    0%, 96%, 100% { transform: translate(0,0); filter: none; }
+    97% { transform: translate(-2px, 1px); filter: drop-shadow(2px 0 #ff4ecb) drop-shadow(-2px 0 #00e5ff); }
+    98% { transform: translate(2px, -1px); }
+    99% { transform: translate(-1px, 0); }
+  }
+
+  .subtitle {
+    color: rgba(230, 225, 255, 0.75);
+    font-size: 0.95rem;
+    margin: 0 0 18px;
+    letter-spacing: 0.3px;
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .badges span {
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    border-radius: 999px;
+    color: #d9d3ff;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(6px);
+    animation: badgePulse 3s ease-in-out infinite;
+    transition: transform .25s ease;
+  }
+
+  .badges span:nth-child(2) { animation-delay: .4s; }
+  .badges span:nth-child(3) { animation-delay: .8s; }
+
+  .badges span:active { transform: scale(0.94); }
+
+  @keyframes badgePulse {
+    0%, 100% { box-shadow: 0 0 0px rgba(140,80,255,0); }
+    50%      { box-shadow: 0 0 16px rgba(140,80,255,0.45); }
+  }
+
+  #username {
+    width: 100%;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 1rem;
+    color: #fff;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 14px;
+    outline: none;
+    transition: all .25s ease;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  #username::placeholder { color: rgba(255,255,255,0.45); }
+
+  #username:focus {
+    border-color: #a06bff;
+    background: rgba(160, 107, 255, 0.12);
+    box-shadow: 0 0 0 4px rgba(160,107,255,0.18), 0 0 20px rgba(160,107,255,0.35);
+    transform: translateY(-1px);
+  }
+
+  /* ---------- gender section ---------- */
+
+  .gender-section {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height .5s ease, opacity .4s ease, margin .4s ease;
+    margin-bottom: 0;
+  }
+
+  .gender-section.open {
+    max-height: 260px;
+    opacity: 1;
+    margin-bottom: 16px;
+  }
+
+  .section-label {
+    font-size: 0.8rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #b9a4ff;
+    margin: 6px 0 10px;
+  }
+
+  .auto-note {
+    font-size: 0.72rem;
+    color: #ffd36e;
+    margin: -4px 0 10px;
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+
+  .auto-note.show { opacity: 1; }
+
+  .gender-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .gender-btn {
+    flex: 1 1 auto;
+    min-width: 88px;
+    padding: 13px 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: #f0ecff;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+
+  .gender-btn:active { transform: scale(0.95); }
+
+  .gender-btn.selected {
+    background: linear-gradient(135deg, rgba(138,63,252,0.4), rgba(0,229,255,0.25));
+    border-color: #a06bff;
+    box-shadow: 0 0 18px rgba(140,80,255,0.5);
+  }
+
+  /* ---------- insta section (flirty pop-up) ---------- */
+
+  .insta-section {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: scale(0.9);
+    transition: max-height .45s ease, opacity .4s ease, transform .4s cubic-bezier(.2,.9,.3,1.4), margin .4s ease;
+    margin-bottom: 0;
+  }
+
+  .insta-section.open {
+    max-height: 200px;
+    opacity: 1;
+    transform: scale(1);
+    margin-bottom: 16px;
+  }
+
+  .flirty-label {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #ffb3e0;
+    background: rgba(255, 78, 203, 0.1);
+    border: 1px solid rgba(255, 78, 203, 0.3);
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin: 4px 0 12px;
+    animation: wiggle 2.4s ease-in-out infinite;
+  }
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25%      { transform: rotate(-0.6deg); }
+    75%      { transform: rotate(0.6deg); }
+  }
+
+  #instaId {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 1rem;
+    color: #fff;
+    background: rgba(255, 78, 203, 0.08);
+    border: 1px solid rgba(255, 78, 203, 0.35);
+    border-radius: 14px;
+    outline: none;
+    transition: all .25s ease;
+  }
+
+  #instaId::placeholder { color: rgba(255,255,255,0.45); }
+
+  #instaId:focus {
+    border-color: #ff4ecb;
+    box-shadow: 0 0 0 4px rgba(255,78,203,0.18), 0 0 20px rgba(255,78,203,0.35);
+  }
+
+  /* ---------- start button ---------- */
+
+  #startBtnWrap {
+    position: relative;
+    width: 100%;
+    height: 58px;
+    margin-top: 6px;
+  }
+
+  #startBtn {
+    position: static;
+    width: 100%;
+    padding: 16px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    overflow: hidden;
+    background: linear-gradient(135deg, #8a3ffc, #ff4ecb 50%, #00e5ff);
+    background-size: 220% 220%;
+    animation: gradientMove 5s ease infinite;
+    box-shadow: 0 10px 30px -8px rgba(138, 63, 252, 0.75);
+    transition: transform .15s ease, box-shadow .15s ease, left .3s cubic-bezier(.3,.9,.3,1.3), top .3s cubic-bezier(.3,.9,.3,1.3);
+  }
+
+  @keyframes gradientMove {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  #startBtn.escaping {
+    position: fixed;
+    width: 200px;
+    z-index: 50;
+  }
+
+  #startBtn:active {
+    transform: scale(0.96);
+  }
+
+  #startBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 100%;
+    transform: translate(-50%,-50%) scale(1);
+    opacity: 0;
+  }
+
+  #startBtn.ripple::after {
+    animation: rippleFx .6s ease-out;
+  }
+
+  @keyframes rippleFx {
+    0%   { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(60); }
+  }
+
+  .nag-msg {
+    position: fixed;
+    z-index: 51;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #ffd36e;
+    background: rgba(20, 8, 35, 0.9);
+    border: 1px solid rgba(255, 211, 110, 0.4);
+    padding: 6px 12px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+    transition: opacity .25s ease, transform .25s ease;
+    white-space: nowrap;
+  }
+
+  .nag-msg.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .warning {
+    margin-top: 18px;
+    font-size: 0.78rem;
+    color: #ffb3d1;
+    opacity: 0.85;
+    animation: warnFlicker 4s ease-in-out infinite;
+  }
+
+  @keyframes warnFlicker {
+    0%, 100% { opacity: 0.85; }
+    50%      { opacity: 0.45; }
+  }
+
+  @media (max-width: 420px) {
+    .container { margin: 5vh 16px; padding: 28px 20px 24px; border-radius: 22px; }
+    .container h1 { font-size: 2.1rem; }
+  }
+
+</style>
+
+</head>
+
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="container">
+
+<h1>🧠 Dimaag.exe</h1>
+
+<p class="subtitle">
+The World's Most Accurate AI Intelligence Test
+</p>
+
+<div class="badges">
+
+<span>🤖 AI Powered</span>
+
+<span>⚡ Ultra Fast</span>
+
+<span>🧠 Brain Scan</span>
+
+</div>
+
+<input
+type="text"
+id="username"
+placeholder="Enter Your Name"
+autocomplete="off">
+
+<div id="genderSection" class="gender-section">
+  <p class="section-label">Select Gender</p>
+  <p class="auto-note" id="autoNote">✨ Auto-detected. Some names just know.</p>
+  <div class="gender-options">
+    <button type="button" class="gender-btn" data-gender="Male">♂️ Male</button>
+    <button type="button" class="gender-btn" data-gender="Female">♀️ Female</button>
+    <button type="button" class="gender-btn" data-gender="Transgender">⚧️ Transgender</button>
+  </div>
+</div>
+
+<div id="instaSection" class="insta-section">
+  <p class="flirty-label" id="flirtyLabel">Ooh, a queen has entered the chat 👑 Drop your Insta so Brain.exe can slide into it later 😉</p>
+  <input
+  type="text"
+  id="instaId"
+  placeholder="@your_insta_handle"
+  autocomplete="off">
+</div>
+
+<div id="startBtnWrap">
+  <button id="startBtn">
+  Start Brain Scan
+  </button>
+</div>
+
+<p class="warning">
+⚠ Side effects may include emotional damage.
+</p>
+
+</div>
+
+<script>
+  /* ===== EXTREME UI LAYER — particle background + micro-interactions ===== */
+
+  (function () {
+
+    /* ---------- particle background ---------- */
+    var canvas = document.getElementById('bg-canvas');
+    var ctx = canvas.getContext('2d');
+    var particles = [];
+    var count = 55;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    var colors = ['#8a3ffc', '#00e5ff', '#ff4ecb', '#7f5cff'];
+
+    function Particle() {
+      this.x = rand(0, canvas.width);
+      this.y = rand(0, canvas.height);
+      this.r = rand(1, 3);
+      this.vx = rand(-0.25, 0.25);
+      this.vy = rand(-0.25, 0.25);
+      this.color = colors[Math.floor(rand(0, colors.length))];
+      this.alpha = rand(0.2, 0.7);
+    }
+
+    for (var i = 0; i < count; i++) particles.push(new Particle());
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      for (var a = 0; a < particles.length; a++) {
+        for (var b = a + 1; b < particles.length; b++) {
+          var dx = particles[a].x - particles[b].x;
+          var dy = particles[a].y - particles[b].y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.strokeStyle = 'rgba(140, 90, 255, ' + (1 - dist / 110) * 0.25 + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    /* ---------- state ---------- */
+    var usernameEl = document.getElementById('username');
+    var genderSection = document.getElementById('genderSection');
+    var autoNote = document.getElementById('autoNote');
+    var genderBtns = document.querySelectorAll('.gender-btn');
+    var instaSection = document.getElementById('instaSection');
+    var instaEl = document.getElementById('instaId');
+    var startBtn = document.getElementById('startBtn');
+    var startBtnWrap = document.getElementById('startBtnWrap');
+
+    var flirtyLines = [
+      "Ooh, a queen has entered the chat 👑 Drop your Insta so Brain.exe can slide into it later 😉",
+      "Hey gorgeous 😏 mind sharing that Insta? Purely for... scientific reasons.",
+      "Brain.exe is blushing 🙈 what's the Insta handle, cutie?",
+      "Don't be shy 😌 slide us that Insta, we promise we're (mostly) not weird."
+    ];
+
+    var selectedGender = null;
+
+    /* ---------- name -> gender reveal ---------- */
+    usernameEl.addEventListener('input', function () {
+      var val = usernameEl.value.trim();
+
+      if (val.length > 0) {
+        genderSection.classList.add('open');
+      } else {
+        genderSection.classList.remove('open');
+        clearGenderSelection();
+      }
+
+      if (val.toLowerCase() === 'dharmendra') {
+        selectGender('Transgender', true);
+      }
+    });
+
+    function clearGenderSelection() {
+      selectedGender = null;
+      genderBtns.forEach(function (b) { b.classList.remove('selected'); });
+      autoNote.classList.remove('show');
+      instaSection.classList.remove('open');
+      instaEl.value = '';
+    }
+
+    function selectGender(gender, isAuto) {
+      selectedGender = gender;
+      genderBtns.forEach(function (b) {
+        b.classList.toggle('selected', b.dataset.gender === gender);
+      });
+
+      if (isAuto) {
+        autoNote.classList.add('show');
+      } else {
+        autoNote.classList.remove('show');
+      }
+
+      if (gender === 'Female') {
+        var line = flirtyLines[Math.floor(rand(0, flirtyLines.length))];
+        document.getElementById('flirtyLabel').textContent = line;
+        instaSection.classList.add('open');
+      } else {
+        instaSection.classList.remove('open');
+        instaEl.value = '';
+      }
+    }
+
+    genderBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        selectGender(btn.dataset.gender, false);
+      });
+    });
+
+    /* ---------- runaway start button ---------- */
+    var nagMessages = [
+      "Nice try 😏 fill me first!",
+      "Catch me if you can 🏃",
+      "Nuh uh, not yet!",
+      "Almost had me!",
+      "Fill the form, then we talk.",
+      "Brain.exe says: incomplete!",
+      "Too slow 😜"
+    ];
+
+    var currentNag = null;
+
+    function isFormComplete() {
+      var name = usernameEl.value.trim();
+      if (name.length === 0) return false;
+      if (!selectedGender) return false;
+      if (selectedGender === 'Female' && instaEl.value.trim().length === 0) return false;
+      return true;
+    }
+
+    function showNag(x, y) {
+      if (currentNag) {
+        currentNag.remove();
+      }
+      var msg = document.createElement('div');
+      msg.className = 'nag-msg';
+      msg.textContent = nagMessages[Math.floor(rand(0, nagMessages.length))];
+      document.body.appendChild(msg);
+
+      var mw = 160;
+      var left = Math.min(Math.max(x - mw / 2, 10), window.innerWidth - mw - 10);
+      var top = Math.max(y - 44, 10);
+
+      msg.style.left = left + 'px';
+      msg.style.top = top + 'px';
+
+      requestAnimationFrame(function () {
+        msg.classList.add('show');
+      });
+
+      currentNag = msg;
+
+      setTimeout(function () {
+        msg.classList.remove('show');
+        setTimeout(function () { msg.remove(); }, 250);
+      }, 900);
+    }
+
+    function runAway(clientX, clientY) {
+      var btnWidth = 200;
+      var btnHeight = 54;
+      var padding = 16;
+
+      var maxLeft = window.innerWidth - btnWidth - padding;
+      var maxTop = window.innerHeight - btnHeight - padding;
+
+      var newLeft = rand(padding, Math.max(padding, maxLeft));
+      var newTop = rand(padding + 60, Math.max(padding + 60, maxTop));
+
+      startBtn.classList.add('escaping');
+      startBtn.style.left = newLeft + 'px';
+      startBtn.style.top = newTop + 'px';
+
+      var rot = rand(-8, 8);
+      startBtn.style.transform = 'rotate(' + rot + 'deg)';
+
+      showNag(clientX != null ? clientX : newLeft + btnWidth / 2, clientY != null ? clientY : newTop);
+    }
+
+    function resetButtonHome() {
+      startBtn.classList.remove('escaping');
+      startBtn.style.left = '';
+      startBtn.style.top = '';
+      startBtn.style.transform = '';
+    }
+
+    startBtn.addEventListener('click', function (e) {
+      startBtn.classList.remove('ripple');
+      void startBtn.offsetWidth;
+      startBtn.classList.add('ripple');
+
+      if (!isFormComplete()) {
+        runAway(e.clientX, e.clientY);
+        return;
+      }
+
+      resetButtonHome();
+
+      var data = {
+        name: usernameEl.value.trim(),
+        gender: selectedGender,
+        instagram: selectedGender === 'Female' ? instaEl.value.trim() : ''
+      };
+
+      try {
+        localStorage.setItem('brainexe_name', data.name);
+        localStorage.setItem('brainexe_gender', data.gender);
+        localStorage.setItem('brainexe_instagram', data.instagram);
+      } catch (err) {
+        // localStorage unavailable — proceed anyway
+      }
+
+      window.location.href = 'identity.html';
+    });
+
+    // gentle tilt on input focus
+    var focusables = document.querySelectorAll('#username, #instaId');
+    focusables.forEach(function (el) {
+      el.addEventListener('focus', function () {
+        document.querySelector('.container').style.transform = 'scale(1.01)';
+      });
+      el.addEventListener('blur', function () {
+        document.querySelector('.container').style.transform = 'scale(1)';
+      });
+    });
+
+  })();
+</script>
+
+</body>
+
+</html>

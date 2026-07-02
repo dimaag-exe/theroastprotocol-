@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About · Brain.exe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0a0616;
+    --bg-glow-a:#2a0f4a;
+    --bg-glow-b:#0d2a3a;
+    --card-bg:rgba(18,13,36,0.6);
+    --card-border:rgba(255,255,255,0.08);
+    --accent-purple:#9b5cf6;
+    --accent-pink:#ec4899;
+    --accent-gold:#fbbf24;
+    --text-primary:#f2eefb;
+    --text-muted:#a89bc9;
+    --text-faint:#6d6189;
+    --mono:'JetBrains Mono', monospace;
+    --display:'Space Grotesk', sans-serif;
+    --body-font:'Inter', sans-serif;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% 15%, var(--bg-glow-a) 0%, transparent 45%),
+      radial-gradient(circle at 85% 75%, var(--bg-glow-b) 0%, transparent 50%),
+      var(--bg-deep);
+    color:var(--text-primary);
+    font-family:var(--body-font);
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  canvas#field{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    pointer-events:none;
+  }
+
+  .backlink{
+    position:fixed;
+    top:22px;
+    left:22px;
+    z-index:5;
+    font-family:var(--mono);
+    font-size:0.75rem;
+    letter-spacing:0.05em;
+    color:var(--text-muted);
+    text-decoration:none;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    opacity:0.7;
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  .backlink:hover{opacity:1; transform:translateX(-3px); color:var(--text-primary);}
+
+  main{
+    position:relative;
+    z-index:2;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    min-height:100vh;
+    padding:90px 20px 70px;
+  }
+
+  .card{
+    width:100%;
+    max-width:560px;
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:22px;
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    padding:38px 34px 34px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.02) inset;
+    transition:transform .15s ease-out;
+    opacity:0;
+    transform:translateY(24px);
+    animation:cardIn .7s cubic-bezier(.2,.8,.2,1) forwards .1s;
+  }
+
+  @keyframes cardIn{
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  /* scanning sweep line, signature element */
+  .card::after{
+    content:'';
+    position:absolute;
+    left:0; right:0;
+    height:120px;
+    top:-140px;
+    background:linear-gradient(180deg, transparent, rgba(155,92,246,0.18), transparent);
+    animation:sweep 6s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes sweep{
+    0%{ top:-140px; }
+    50%{ top:100%; }
+    100%{ top:100%; }
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:0.68rem;
+    letter-spacing:0.18em;
+    color:var(--accent-purple);
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .eyebrow .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:#4ade80;
+    box-shadow:0 0 8px #4ade80;
+    animation:blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink{ 50%{opacity:.25;} }
+
+  h1.title{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:2.1rem;
+    line-height:1.15;
+    background:linear-gradient(100deg, var(--accent-purple), var(--accent-pink));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:4px;
+  }
+  h1.title .brain{
+    filter:drop-shadow(0 0 14px rgba(155,92,246,.6));
+    animation:float 3.4s ease-in-out infinite;
+    -webkit-text-fill-color:initial;
+  }
+  @keyframes float{
+    0%,100%{ transform:translateY(0) rotate(-2deg); }
+    50%{ transform:translateY(-6px) rotate(2deg); }
+  }
+
+  .version-line{
+    font-family:var(--mono);
+    font-size:0.8rem;
+    color:var(--text-muted);
+    margin-bottom:2px;
+  }
+
+  .creator-line{
+    font-family:var(--mono);
+    font-size:0.8rem;
+    color:var(--text-faint);
+    margin-bottom:24px;
+  }
+  .creator-line span{color:var(--text-primary); font-weight:500;}
+
+  .divider{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:26px 0 16px;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    font-size:0.68rem;
+    letter-spacing:0.1em;
+  }
+  .divider::before, .divider::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:repeating-linear-gradient(90deg, var(--card-border) 0 6px, transparent 6px 10px);
+  }
+
+  .section-head{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    letter-spacing:0.05em;
+    color:var(--accent-gold);
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:2px;
+  }
+  .section-head::before{ content:'>> '; color:var(--text-faint); }
+  .cursor{
+    display:inline-block;
+    width:7px; height:14px;
+    background:var(--accent-gold);
+    margin-left:4px;
+    animation:blink 1s steps(1) infinite;
+    vertical-align:middle;
+  }
+
+  p.body-text{
+    font-size:0.93rem;
+    line-height:1.65;
+    color:var(--text-primary);
+    opacity:0.9;
+  }
+  p.body-text + p.body-text{ margin-top:10px; }
+  .disclaimer{
+    font-style:italic;
+    color:var(--text-muted);
+    font-size:0.85rem;
+    margin-top:10px;
+  }
+
+  ul.features{
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  ul.features li{
+    font-size:0.9rem;
+    color:var(--text-primary);
+    opacity:0;
+    transform:translateX(-10px);
+    animation:slideIn .5s ease forwards;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px;
+    border-radius:10px;
+    transition:background .2s ease, transform .2s ease;
+  }
+  ul.features li:hover{
+    background:rgba(155,92,246,0.08);
+    transform:translateX(2px);
+  }
+  ul.features li .check{
+    color:#4ade80;
+    font-family:var(--mono);
+    font-weight:600;
+  }
+  ul.features li:nth-child(1){animation-delay:.15s;}
+  ul.features li:nth-child(2){animation-delay:.25s;}
+  ul.features li:nth-child(3){animation-delay:.35s;}
+  ul.features li:nth-child(4){animation-delay:.45s;}
+  ul.features li:nth-child(5){animation-delay:.55s;}
+  @keyframes slideIn{ to{ opacity:1; transform:translateX(0); } }
+
+  .msg-box{
+    border-left:2px solid var(--accent-purple);
+    padding:12px 16px;
+    background:rgba(155,92,246,0.06);
+    border-radius:0 10px 10px 0;
+    font-size:0.9rem;
+    line-height:1.6;
+    color:var(--text-primary);
+  }
+
+  .connect-row{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    font-size:0.9rem;
+  }
+  .connect-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:var(--text-muted);
+  }
+  a.text-link{
+    color:var(--text-primary);
+    text-decoration:none;
+    background:none;
+    border:none;
+    padding:0;
+    font:inherit;
+    position:relative;
+    cursor:pointer;
+    transition:color .2s ease;
+  }
+  a.text-link::after{
+    content:'';
+    position:absolute;
+    left:0; bottom:-2px;
+    width:0%;
+    height:1px;
+    background:linear-gradient(90deg, var(--accent-purple), var(--accent-pink));
+    transition:width .25s ease;
+  }
+  a.text-link:hover{ color:var(--accent-pink); }
+  a.text-link:hover::after{ width:100%; }
+
+  .soon{
+    color:var(--text-faint);
+    font-size:0.85rem;
+  }
+  .soon-tag{
+    font-family:var(--mono);
+    font-size:0.62rem;
+    background:rgba(255,255,255,0.06);
+    padding:2px 6px;
+    border-radius:5px;
+    margin-left:6px;
+    color:var(--text-faint);
+  }
+
+  .footer-version{
+    text-align:center;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:var(--text-faint);
+    margin-top:30px;
+    letter-spacing:0.08em;
+    position:relative;
+  }
+
+  .actions{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:28px;
+  }
+
+  .btn{
+    display:block;
+    width:100%;
+    text-align:center;
+    padding:15px 18px;
+    border-radius:14px;
+    font-family:var(--display);
+    font-weight:600;
+    font-size:0.95rem;
+    text-decoration:none;
+    border:none;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:active{ transform:scale(0.97); }
+
+  .btn-primary{
+    background:linear-gradient(100deg, var(--accent-pink), var(--accent-purple));
+    color:#fff;
+    box-shadow:0 10px 30px rgba(236,72,153,0.35);
+  }
+  .btn-primary:hover{
+    box-shadow:0 14px 36px rgba(236,72,153,0.5);
+    transform:translateY(-2px);
+  }
+
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    background:rgba(255,255,255,0.55);
+    transform:scale(0);
+    animation:rippleAnim .6s ease-out;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{
+    to{ transform:scale(3); opacity:0; }
+  }
+
+  /* hidden easter-egg button, blended into the starfield */
+  .ghost-node{
+    position:fixed;
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:transparent;
+    z-index:4;
+    cursor:default;
+    transition:box-shadow .4s ease, background .4s ease;
+  }
+  .ghost-node:hover{
+    background:rgba(251,191,36,0.5);
+    box-shadow:0 0 18px 6px rgba(251,191,36,0.55);
+    cursor:pointer;
+  }
+
+  @media (max-width:480px){
+    .card{ padding:30px 22px 26px; border-radius:18px; }
+    h1.title{ font-size:1.7rem; }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="field"></canvas>
+
+<a href="result.html" class="backlink">&larr; back to report</a>
+
+<main>
+  <div class="card" id="card">
+
+    <div class="eyebrow"><span class="dot"></span> SYSTEM · ABOUT MODULE</div>
+
+    <h1 class="title"><span class="brain">🧠</span> Brain.exe</h1>
+    <div class="version-line">Version 1.0</div>
+    <div class="creator-line">Created by: <span>Prayag</span></div>
+
+    <div class="divider">SECTION 01</div>
+    <div class="section-head">WHAT_IS_BRAIN.EXE<span class="cursor"></span></div>
+    <p class="body-text">
+      Brain.exe is a completely scientific, 100% definitely real, AI-powered
+      intelligence assessment platform.
+    </p>
+    <p class="disclaimer">*Results may or may not hurt your feelings.*</p>
+
+    <div class="divider">SECTION 02</div>
+    <div class="section-head">FEATURES.LOG</div>
+    <ul class="features">
+      <li><span class="check">✔</span> AI Brain Analysis</li>
+      <li><span class="check">✔</span> 105 Questions</li>
+      <li><span class="check">✔</span> Fake Neural Scanner</li>
+      <li><span class="check">✔</span> Emotional Damage Generator</li>
+      <li><span class="check">✔</span> Random Roasts</li>
+    </ul>
+
+    <div class="divider">SECTION 03</div>
+    <div class="section-head">DEV_MESSAGE.TXT</div>
+    <div class="msg-box">
+      Thanks for trying Brain.exe!<br><br>
+      If you laughed even once, mission accomplished.
+    </div>
+
+    <div class="divider">SECTION 04</div>
+    <div class="section-head">CONNECT</div>
+    <div class="connect-row">
+      <div class="connect-item">📷
+        <a class="text-link" id="igLink" href="https://www.instagram.com/sirf.safar?igsh=enRtaXh2Y3U1d3Ey" target="_blank" rel="noopener noreferrer">Instagram</a>
+      </div>
+      <div class="connect-item soon">🌐 Portfolio <span class="soon-tag">FUTURE</span></div>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn-primary" id="prankBtn" href="prank.html">Run Deeper Scan 😏</a>
+    </div>
+
+    <div class="footer-version">v1.0.0</div>
+  </div>
+</main>
+
+<!-- hidden easter-egg node: blends into the starfield, also leads to prank.html -->
+<div class="ghost-node" id="ghostNode" title=""></div>
+
+<script>
+  /* ---------- particle field, matches the report screen's constellation bg ---------- */
+  const canvas = document.getElementById('field');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles;
+  const PCOUNT = 60;
+  const LINK_DIST = 130;
+  let mouse = { x: null, y: null };
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function initParticles(){
+    particles = Array.from({length: PCOUNT}, () => ({
+      x: Math.random()*w,
+      y: Math.random()*h,
+      vx: (Math.random()-0.5)*0.25,
+      vy: (Math.random()-0.5)*0.25,
+      r: Math.random()*1.4+0.6
+    }));
+  }
+  initParticles();
+
+  window.addEventListener('mousemove', e=>{
+    mouse.x = e.clientX; mouse.y = e.clientY;
+  });
+  window.addEventListener('mouseleave', ()=>{ mouse.x=null; mouse.y=null; });
+
+  function step(){
+    ctx.clearRect(0,0,w,h);
+    for(const p of particles){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0||p.x>w) p.vx*=-1;
+      if(p.y<0||p.y>h) p.vy*=-1;
+
+      if(mouse.x!=null){
+        const dx=p.x-mouse.x, dy=p.y-mouse.y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<120){ p.x += dx/d*0.6; p.y += dy/d*0.6; }
+      }
+
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(200,180,255,0.55)';
+      ctx.fill();
+    }
+    for(let i=0;i<PCOUNT;i++){
+      for(let j=i+1;j<PCOUNT;j++){
+        const a=particles[i], b=particles[j];
+        const dx=a.x-b.x, dy=a.y-b.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<LINK_DIST){
+          ctx.beginPath();
+          ctx.moveTo(a.x,a.y);
+          ctx.lineTo(b.x,b.y);
+          ctx.strokeStyle=`rgba(155,110,220,${0.14*(1-dist/LINK_DIST)})`;
+          ctx.lineWidth=1;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(step);
+  }
+  step();
+
+  /* ---------- card tilt on mouse move ---------- */
+  const card = document.getElementById('card');
+  card.addEventListener('mousemove', e=>{
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left)/r.width - 0.5;
+    const py = (e.clientY - r.top)/r.height - 0.5;
+    card.style.transform = `rotateX(${-py*3}deg) rotateY(${px*3}deg)`;
+  });
+  card.addEventListener('mouseleave', ()=>{
+    card.style.transform = 'rotateX(0) rotateY(0)';
+  });
+  card.style.transformStyle = 'preserve-3d';
+
+  /* ---------- ripple on primary button ---------- */
+  document.getElementById('prankBtn').addEventListener('click', function(e){
+    const btn = this;
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = size+'px';
+    ripple.style.left = (e.clientX-rect.left-size/2)+'px';
+    ripple.style.top = (e.clientY-rect.top-size/2)+'px';
+    btn.appendChild(ripple);
+    setTimeout(()=>ripple.remove(),600);
+  });
+
+  /* ---------- hidden easter-egg node: placed at a quiet spot, invisible until hovered ---------- */
+  const ghost = document.getElementById('ghostNode');
+  function placeGhost(){
+    const x = window.innerWidth * 0.9;
+    const y = window.innerHeight * 0.12;
+    ghost.style.left = x + 'px';
+    ghost.style.top = y + 'px';
+  }
+  placeGhost();
+  window.addEventListener('resize', placeGhost);
+  ghost.addEventListener('click', ()=>{ window.location.href = 'prank.html'; });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Brain.exe — Loading</title>
+
+<style>
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #05010d;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    display: block;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(140, 60, 255, 0.28), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(0, 255, 220, 0.2), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(255, 0, 150, 0.2), transparent 45%);
+    animation: bgShift 6s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgShift {
+    0%   { filter: hue-rotate(0deg) brightness(1); }
+    100% { filter: hue-rotate(70deg) brightness(1.2); }
+  }
+
+  .splash {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 24px;
+  }
+
+  .logo-wrap {
+    position: relative;
+    margin-bottom: 28px;
+  }
+
+  .brain-emoji {
+    font-size: 4.2rem;
+    display: inline-block;
+    animation: brainPulse 1.4s ease-in-out infinite, brainSpin 6s linear infinite;
+    filter: drop-shadow(0 0 30px rgba(140, 80, 255, 0.7));
+  }
+
+  @keyframes brainPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.15); }
+  }
+
+  @keyframes brainSpin {
+    0%   { transform: rotate(-4deg) scale(1); }
+    50%  { transform: rotate(4deg) scale(1.05); }
+    100% { transform: rotate(-4deg) scale(1); }
+  }
+
+  .logo-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 130px; height: 130px;
+    margin: -65px 0 0 -65px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #8a3ffc;
+    border-right-color: #00e5ff;
+    animation: spinRing 1.6s linear infinite;
+    z-index: -1;
+  }
+
+  .logo-ring.ring2 {
+    width: 160px; height: 160px;
+    margin: -80px 0 0 -80px;
+    border-top-color: transparent;
+    border-bottom-color: #ff4ecb;
+    border-left-color: #7f5cff;
+    animation: spinRing 2.4s linear infinite reverse;
+    opacity: 0.6;
+  }
+
+  @keyframes spinRing {
+    to { transform: rotate(360deg); }
+  }
+
+  .brand-title {
+    font-size: 2.6rem;
+    font-weight: 800;
+    margin: 0 0 6px;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #7f5cff, #00e5ff, #ff4ecb, #7f5cff);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 3s linear infinite;
+    text-shadow: 0 0 30px rgba(140, 80, 255, 0.35);
+  }
+
+  @keyframes shine { to { background-position: 300% center; } }
+
+  .brand-sub {
+    font-size: 0.78rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(230, 225, 255, 0.55);
+    margin: 0 0 44px;
+  }
+
+  .brand-sub span {
+    color: #ffd36e;
+    font-weight: 700;
+  }
+
+  .phrase-box {
+    min-height: 2.6em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  #phrase {
+    font-size: 1rem;
+    color: #f0ecff;
+    letter-spacing: 0.3px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+
+  #phrase.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .progress {
+    position: relative;
+    width: min(280px, 70vw);
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    overflow: hidden;
+  }
+
+  #bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #8a3ffc, #00e5ff, #ff4ecb);
+    background-size: 200% 100%;
+    animation: barGradient 1.6s linear infinite;
+    box-shadow: 0 0 16px rgba(140, 80, 255, 0.7);
+    transition: width 0.4s ease;
+  }
+
+  @keyframes barGradient {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  #percent {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    color: rgba(230, 225, 255, 0.5);
+  }
+
+  .footer-tag {
+    position: absolute;
+    bottom: 26px;
+    left: 0;
+    right: 0;
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    color: rgba(230, 225, 255, 0.35);
+    z-index: 2;
+  }
+
+  @media (max-width: 420px) {
+    .brand-title { font-size: 2.1rem; }
+    .brain-emoji { font-size: 3.4rem; }
+  }
+
+</style>
+
+</head>
+
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="splash">
+
+  <div class="logo-wrap">
+    <div class="logo-ring"></div>
+    <div class="logo-ring ring2"></div>
+    <span class="brain-emoji">🧠</span>
+  </div>
+
+  <h1 class="brand-title">The Roast Protocol</h1>
+  <p class="brand-sub">a product of <span>NOTHINGNESS</span></p>
+
+  <div class="phrase-box">
+    <p id="phrase">Initializing...</p>
+  </div>
+
+  <div class="progress">
+    <div id="bar"></div>
+  </div>
+  <div id="percent">0%</div>
+
+</div>
+
+<p class="footer-tag">NOTHINGNESS™ — Building Nothing, Professionally, Since Never.</p>
+
+<script>
+  (function () {
+
+    /* ---------- particle background, same theme as the rest of the site ---------- */
+    var canvas = document.getElementById('bg-canvas');
+    var ctx = canvas.getContext('2d');
+    var particles = [];
+    var count = 45;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    var colors = ['#8a3ffc', '#00e5ff', '#ff4ecb', '#7f5cff'];
+
+    function Particle() {
+      this.x = rand(0, canvas.width);
+      this.y = rand(0, canvas.height);
+      this.r = rand(1, 3);
+      this.vx = rand(-0.25, 0.25);
+      this.vy = rand(-0.25, 0.25);
+      this.color = colors[Math.floor(rand(0, colors.length))];
+      this.alpha = rand(0.2, 0.7);
+    }
+
+    for (var i = 0; i < count; i++) particles.push(new Particle());
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      for (var a = 0; a < particles.length; a++) {
+        for (var b = a + 1; b < particles.length; b++) {
+          var dx = particles[a].x - particles[b].x;
+          var dy = particles[a].y - particles[b].y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.strokeStyle = 'rgba(140, 90, 255, ' + (1 - dist / 110) * 0.25 + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    /* ---------- humorous rotating phrases ---------- */
+    var phrases = [
+      "Initializing overconfidence module...",
+      "Calibrating sarcasm levels...",
+      "Downloading intelligence... 2% complete",
+      "Asking Google if you're smart...",
+      "Bribing neurons to cooperate...",
+      "Loading existential dread...",
+      "Politely ignoring red flags in your logic...",
+      "Consulting a magic 8-ball for accuracy...",
+      "Compressing your ego for transport...",
+      "Reticulating splines. Yes, really.",
+      "Warning: Brain may be mostly decorative...",
+      "Summoning IQ points from the void...",
+      "Reading your mind. Found: snacks.",
+      "Charging sarcasm capacitors to 100%...",
+      "Running a background check on your logic...",
+      "Preparing gentle emotional damage...",
+      "Optimizing for maximum humility...",
+      "NOTHINGNESS Inc. thanks you for your patience.",
+      "Almost there. Unlike your last relationship.",
+      "Finalizing report. Tissues recommended."
+    ];
+
+    var phraseEl = document.getElementById('phrase');
+    var usedOrder = phrases.slice().sort(function () { return Math.random() - 0.5; });
+    var pIndex = 0;
+
+    function showNextPhrase() {
+      phraseEl.classList.remove('show');
+      setTimeout(function () {
+        phraseEl.textContent = usedOrder[pIndex % usedOrder.length];
+        pIndex++;
+        phraseEl.classList.add('show');
+      }, 200);
+    }
+
+    showNextPhrase();
+    var phraseTimer = setInterval(showNextPhrase, 900);
+
+    /* ---------- progress bar + redirect ---------- */
+    var totalDuration = 4700; // ms, lands inside the 4-5s window
+    var startTime = Date.now();
+    var bar = document.getElementById('bar');
+    var percentEl = document.getElementById('percent');
+
+    function tick() {
+      var elapsed = Date.now() - startTime;
+      var pct = Math.min(100, Math.round((elapsed / totalDuration) * 100));
+      bar.style.width = pct + '%';
+      percentEl.textContent = pct + '%';
+
+      if (elapsed < totalDuration) {
+        requestAnimationFrame(tick);
+      } else {
+        clearInterval(phraseTimer);
+        window.location.href = 'pages/welcome.html';
+      }
+    }
+    tick();
+
+  })();
+</script>
+
+</body>
+
+</html>
